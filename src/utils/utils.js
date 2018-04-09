@@ -15,9 +15,13 @@ export function isObject(val) {
  * @return {object}
  */
 export function normalize(snapshot) {
-    var value = snapshot.doc ? snapshot.doc.data() : snapshot.data()
+    let doc = snapshot.doc || snapshot
+    var value = doc.data()
     var out = isObject(value) ? value : { '.value': value }
-    out['.key'] = snapshot.doc ? snapshot.doc.id : snapshot.id
+    out.id = doc.id
+    out.delete = () => doc.ref.delete()
+    out.set = (data) => doc.ref.set(data)
+    out.update = (data) => doc.ref.update(data)
     return out;
 }
 

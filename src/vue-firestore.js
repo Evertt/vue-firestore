@@ -29,31 +29,29 @@ function collections({ vm, key, source, resolve, reject }) {
     vm.$firestore[key] = source
     let container = []
     defineReactive(vm, key, container);
+
     source.onSnapshot((doc) => {
-        doc.docChanges.forEach(snapshot => {
-            switch (snapshot.type) {
-                case "added":
-                    container.splice(snapshot.newIndex, 0, normalize(snapshot))
-                    break;
-                case "removed":
-                    container.splice(snapshot.oldIndex, 1)
-                    break;
-                case "modified":
-                    if (snapshot.oldIndex !== snapshot.newIndex) {
-                        container.splice(snapshot.oldIndex, 1);
-                        container.splice(snapshot.newIndex, 0, normalize(snapshot));
-                    } else {
-                        container.splice(snapshot.newIndex, 1, normalize(snapshot));
-                    }
-                    break;
-            }
-        }, (error) => {
-            reject(error)
-        })
+        vm[key] = doc.docs.map(normalize)
         resolve(container)
     }, (error) => {
         reject(error)
     })
+
+    if (!source.add) return
+
+    vm.$watch(key, (newList) => newList
+        .filter((doc) => doc && !doc.id)
+        .forEach((doc) => {
+            let data = Object.assign({}, doc)
+
+            delete data.id
+            delete data.set
+            delete data.update
+            delete data.delete
+
+            source.add(data)
+        })
+    )
 }
 
 /**
